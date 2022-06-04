@@ -11,7 +11,8 @@ from accounts.auth import Auth
 api = APIRouter(prefix='/users', )
 
 
-@api.post('/', response_model=UserSchema)
+@api.post('/registration', response_model=UserSchema, summary='Registration new user.', tags=['Users'],
+          status_code=status.HTTP_201_CREATED)
 async def read_users_me(new_user: UserSerializer, auth: Auth = Depends()):
     user = UserSerializer(username=new_user.username,
                           email=new_user.email,

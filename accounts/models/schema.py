@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import BaseModel, ValidationError, validator, EmailStr
 
 
 class Token(BaseModel):
@@ -12,7 +12,7 @@ class TokenData(BaseModel):
 
 class UserSerializer(BaseModel):
     username: str
-    email: str | None = None
+    email: EmailStr | None = None
     password1: str
     password2: str
 

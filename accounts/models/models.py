@@ -1,9 +1,12 @@
+from datetime import datetime
+
 from sqlalchemy import Column, String, DateTime, Integer, Boolean
 from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
-from datetime import datetime
+from fastapi import HTTPException
+
 from .database import Base, db
-from uuid import uuid4
 
 
 class User(Base):
@@ -31,24 +34,32 @@ class User(Base):
         db.add(user)
         try:
             await db.commit()
-            print(user)
-        except Exception:
+        except Exception as e:
             await db.rollback()
-            raise
+            message = str(e.__cause__)
+            if message is not None:
+                raise HTTPException(status_code=400, detail=message)
+            else:
+                raise HTTPException(status_code=400, detail='Bad request.')
         return user
 
     @classmethod
     async def update(cls, id, **kwargs):
         query = (
             sqlalchemy_update(cls).where(cls.id == id).values(**kwargs)
-            .execution_options(synchronize_session='fetch')
+                .execution_options(synchronize_session='fetch')
         )
         await db.execute(query)
         try:
             await db.commit()
-        except Exception:
+        except Exception as e:
             await db.rollback()
-            raise
+            message = e.__cause__
+            if message is not None:
+                raise HTTPException(status_code=400, detail=message)
+            else:
+                raise HTTPException(status_code=400, detail='Bad request.')
+
         users = await db.execute(select(cls).where(cls.id == id))
         (user,) = users.first()
         return user
@@ -66,7 +77,11 @@ class User(Base):
         await db.execute(query)
         try:
             await db.commit()
-        except Exception:
+        except Exception as e:
             await db.rollback()
-            raise
+            message = e.__cause__
+            if message is not None:
+                raise HTTPException(status_code=400, detail=message)
+            else:
+                raise HTTPException(status_code=400, detail='Bad request.')
         return True
