@@ -1,4 +1,4 @@
-from accounts.models.database import db
+from models.database import db
 from fastapi import FastAPI
 
 

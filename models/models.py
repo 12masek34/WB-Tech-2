@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, DateTime, Integer, Boolean
+from sqlalchemy import Column, String, DateTime, Integer, Boolean, Text
 from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from fastapi import HTTPException
+from sqlalchemy.orm import relationship
 
-from .database import Base, db
+from models.database import Base, db
 
 
 class User(Base):
@@ -19,6 +19,7 @@ class User(Base):
     hashed_password = Column(String(128), nullable=False)
     disabled = Column(Boolean, default=False)
     created_at = Column(DateTime, index=True, default=datetime.utcnow)
+    posts = relationship('Post', backref='user', cascade='all, delete-orphan')
 
     def __repr__(self):
         return (
@@ -85,3 +86,20 @@ class User(Base):
             else:
                 raise HTTPException(status_code=400, detail='Bad request.')
         return True
+
+
+class Post(Base):
+    __tablename__ = 'posts'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(256), nullable=False)
+    text = Column(Text)
+    created_at = Column(DateTime, index=True, default=datetime.utcnow)
+
+    def __repr__(self):
+        return (
+            f'<{self.__class__.__name__}('
+            f'id={self.id}, '
+            f'username={self.title}, '
+            f')>'
+        )
