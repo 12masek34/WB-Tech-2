@@ -7,19 +7,23 @@ from fastapi import APIRouter
 from models.models import User
 from models.schema import Token, User as UserSchema, UserSerializer
 from accounts.auth import Auth
+from services.CRUD import CRUDUser
 
 api = APIRouter(prefix='/users', )
 
 
 @api.post('/registration', response_model=UserSchema, summary='Registration new user.', tags=['Users'],
           status_code=status.HTTP_201_CREATED)
-async def read_users_me(new_user: UserSerializer, auth: Auth = Depends()):
+async def read_users_me(new_user: UserSerializer, auth: Auth = Depends(), crud_user: CRUDUser = Depends()):
     user = UserSerializer(username=new_user.username,
                           email=new_user.email,
                           password1=new_user.password1,
                           password2=new_user.password2)
     hashed_password = auth.get_password_hash(user.password1)
-    user = await User.create(username=user.username, email=user.email, hashed_password=hashed_password)
+
+    user = await crud_user.create(username=user.username, email=user.email, hashed_password=hashed_password)
+    # user = await User.create(username=user.username, email=user.email, hashed_password=hashed_password)
+
     return UserSchema.from_orm(user)
 
 
@@ -38,4 +42,3 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={'sub': user.username}, expires_delta=access_token_expires
     )
     return {'access_token': access_token, 'token_type': 'bearer'}
-

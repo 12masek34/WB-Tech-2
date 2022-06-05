@@ -19,7 +19,8 @@ class User(Base):
     hashed_password = Column(String(128), nullable=False)
     disabled = Column(Boolean, default=False)
     created_at = Column(DateTime, index=True, default=datetime.utcnow)
-    posts = relationship('Post', backref='user', cascade='all, delete-orphan')
+    posts = relationship('Post', backref='user', cascade='all, delete-orphan',
+                         primaryjoin="User.id == Post.user_id")
 
     def __repr__(self):
         return (
