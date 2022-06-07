@@ -19,10 +19,9 @@ def init_app():
         await db.close()
 
     from accounts.views import api
-    app.include_router(
-        api,
-        prefix='/api/v1',
-    )
+    app.include_router(api, prefix='/api/v1',)
+    from blogs.view import api
+    app.include_router(api, prefix='/api/v1',)
     return app
 
 
