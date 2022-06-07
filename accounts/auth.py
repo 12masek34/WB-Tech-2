@@ -11,9 +11,10 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import ValidationError
 
+from models.database import AsyncDatabaseSession, get_db
 from models.models import User as UserSchema
 from schemas.user_schema import UserInDB, TokenData
-from services.CRUD_user import crud_user
+from services.CRUD_user import create_user, get_user
 from config import Config
 
 load_dotenv()
@@ -33,8 +34,8 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-async def authenticate_user(crud_user, username: str, password: str) -> UserInDB | bool:
-    user = await crud_user.get_user(username)
+async def authenticate_user(db, username: str, password: str) -> UserInDB | bool:
+    user = await get_user(db, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -53,7 +54,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-async def get_current_user(security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)):
+async def get_current_user(security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme),
+                           db: AsyncDatabaseSession = Depends(get_db)):
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -72,7 +74,7 @@ async def get_current_user(security_scopes: SecurityScopes, token: str = Depends
         token_data = TokenData(scopes=token_scopes, username=username)
     except (JWTError, ValidationError):
         raise credentials_exception
-    user = await crud_user.get_user(username=token_data.username)
+    user = await get_user(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:

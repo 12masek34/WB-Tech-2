@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
 from config import Config
 
 Base = declarative_base()
@@ -7,8 +8,8 @@ Base = declarative_base()
 
 class AsyncDatabaseSession:
     def __init__(self):
-        self._session = None
         self._engine = None
+        self._session = None
 
     def __getattr__(self, name):
         return getattr(self._session, name)
@@ -19,6 +20,7 @@ class AsyncDatabaseSession:
             future=True,
             echo=True,
         )
+
         self._session = sessionmaker(
             self._engine, expire_on_commit=False, class_=AsyncSession
         )()
@@ -28,4 +30,10 @@ class AsyncDatabaseSession:
             await conn.run_sync(Base.metadata.create_all)
 
 
-db = AsyncDatabaseSession()
+def get_db():
+    db = AsyncDatabaseSession()
+    db.init()
+    try:
+        yield db
+    finally:
+        db.close()

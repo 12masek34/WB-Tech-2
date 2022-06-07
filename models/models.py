@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 from sqlalchemy.orm import relationship
 
-from models.database import Base, db
+from models.database import Base
 
 
 class User(Base):
