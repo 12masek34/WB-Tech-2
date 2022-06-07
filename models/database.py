@@ -14,11 +14,11 @@ class AsyncDatabaseSession:
     def __getattr__(self, name):
         return getattr(self._session, name)
 
-    def init(self):
+    def init(self, db_config):
         self._engine = create_async_engine(
-            Config.DB_CONFIG,
+            db_config,
             future=True,
-            echo=True,
+            echo=False,
         )
 
         self._session = sessionmaker(
@@ -29,11 +29,12 @@ class AsyncDatabaseSession:
         async with self._engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
+    async def drop_all(self):
+        async with self._engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+
 
 def get_db():
     db = AsyncDatabaseSession()
-    db.init()
-    try:
-        yield db
-    finally:
-        db.close()
+    db.init(Config.DB_CONFIG)
+    return db

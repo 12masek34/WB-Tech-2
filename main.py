@@ -6,7 +6,7 @@ from config import Config
 
 
 def init_app():
-    db = next(get_db())
+    db = get_db()
     app = FastAPI(
         title='Users App',
         description='Handling Our Users',

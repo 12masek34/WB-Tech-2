@@ -1,48 +1,41 @@
+import asyncio
+
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from fastapi import FastAPI
+from httpx import AsyncClient
 
-from main import app
-from models.database import Base, AsyncDatabaseSession
 from config import Config
-
-engine = create_engine(
-    Config.TEST_DB_CONFIG, connect_args={"check_same_thread": False}
-)
-
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from main import app
+from models.database import get_db, AsyncDatabaseSession
 
 
 def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
+    db = AsyncDatabaseSession()
+    db.init(Config.TEST_DB_CONFIG)
+    return db
 
 
-@pytest.fixture()
-def test_db():
-    Base.metadata.create_all(bind=engine)
+app.dependency_overrides[get_db] = override_get_db
+
+
+
+@pytest.fixture(autouse=True, scope="module")
+async def create_test_database():
+    db = override_get_db()
+    await db.create_all()
     yield
-    Base.metadata.drop_all(bind=engine)
+    await db.drop_all()
 
 
-app.dependency_overrides[AsyncDatabaseSession] = override_get_db
+@pytest.mark.anyio
+async def test_root():
 
-client = TestClient(app)
-
-
-def test_create_user():
-    response = client.post(
-        'http://0.0.0.0:8000/api/v1/users/registration',
-        json={
-            "username": "string4",
-            "email": "user4@example.com",
+    async with AsyncClient(app=app, base_url="http://0.0.0.0:8000/api/v1/users/") as ac:
+        response = await ac.post("registration", json={
+            "username": "string",
+            "email": "user@example.com",
             "password1": "string",
             "password2": "string"
-        }
-    )
-    print(response.json())
-    print(response.status_code)
+        })
+        print(response.json())
+
